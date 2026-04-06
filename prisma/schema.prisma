@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String
+  price       Int      // Price in INR (paise * 100, so ₹500 = 50000)
+  category    String   // Birthday, Anniversary, Custom, Brownies, Breads, Desserts, Cupcakes, Cookies
+  image       String
+  eggless     Boolean  @default(false)
+  bestseller  Boolean  @default(false)
+  weight      String   // "500g", "1kg", "2kg"
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orders      OrderItem[]
+}
+
+model Order {
+  id            String     @id @default(cuid())
+  customerName  String
+  customerPhone String
+  customerEmail String?
+  address       String
+  city          String
+  pincode       String
+  deliveryDate  DateTime
+  deliveryTime  String
+  paymentMethod String     // "razorpay", "cod"
+  paymentStatus String     @default("pending") // pending, paid, failed
+  orderStatus   String     @default("pending") // pending, confirmed, baking, out_for_delivery, delivered, cancelled
+  totalAmount   Int
+  notes         String?
+  whatsappSent  Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  items         OrderItem[]
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Int     // Price at time of order
+  eggless   Boolean @default(false)
+  extraCream Boolean @default(false)
+  message   String? // Custom message on cake
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+}
