@@ -79,13 +79,14 @@ interface ChatMessage {
 }
 
 // ====== Constants ======
-const CATEGORIES = ['All', 'Birthday', 'Anniversary', 'Custom', 'Brownies', 'Breads', 'Desserts', 'Cupcakes', 'Cookies']
+const CATEGORIES = ['All', 'Birthday', 'Anniversary', 'Custom', 'Eggless', 'Brownies', 'Breads', 'Desserts', 'Cupcakes', 'Cookies']
 
 const CATEGORY_ICONS: Record<string, string> = {
   All: '🎂',
   Birthday: '🎈',
   Anniversary: '💝',
   Custom: '🎨',
+  Eggless: '🌿',
   Brownies: '🍫',
   Breads: '🍞',
   Desserts: '🍮',
@@ -1286,18 +1287,38 @@ export default function Home() {
       <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto p-0">
         <>
           {/* Image Gallery */}
-          <div className="relative h-64 sm:h-80 bg-orange-50">
-            {selectedProduct.video && detailCurrentImage === -1 ? (
-              <video src={selectedProduct.video} controls autoPlay className="w-full h-full object-contain" />
-            ) : (
-              <img
-                src={currentImg}
-                alt={selectedProduct.name}
-                className="w-full h-full object-cover"
-              />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-            <div className="absolute bottom-4 left-4 flex gap-2">
+          <div className="relative h-64 sm:h-80 bg-orange-50 overflow-hidden">
+            <AnimatePresence mode="wait">
+              {selectedProduct.video && detailCurrentImage === -1 ? (
+                <motion.div
+                  key="video"
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  className="absolute inset-0"
+                >
+                  <video src={selectedProduct.video} controls autoPlay playsInline className="w-full h-full object-contain" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key={currentImg + '-' + detailCurrentImage}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.5, ease: 'easeInOut' }}
+                  className="absolute inset-0"
+                >
+                  <img
+                    src={currentImg}
+                    alt={selectedProduct.name}
+                    className="w-full h-full object-cover"
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+            <div className="absolute bottom-4 left-4 flex gap-2 pointer-events-none">
               {selectedProduct.bestseller && (
                 <Badge className="bg-amber-500 text-white"><Award className="w-3 h-3 mr-1" /> Bestseller</Badge>
               )}
@@ -1308,24 +1329,32 @@ export default function Home() {
             {/* Image navigation arrows */}
             {allImages.length > 1 && (
               <>
-                <button onClick={() => setDetailCurrentImage(prev => prev <= 0 ? allImages.length - 1 : prev - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-md">
-                  <ChevronRight className="w-4 h-4 text-stone-700 rotate-180" />
+                <button onClick={() => setDetailCurrentImage(prev => prev <= 0 ? allImages.length - 1 : prev - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-all shadow-lg hover:scale-110 active:scale-95 z-10">
+                  <ChevronRight className="w-5 h-5 text-stone-700 rotate-180" />
                 </button>
-                <button onClick={() => setDetailCurrentImage(prev => prev >= allImages.length - 1 ? 0 : prev + 1)} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-md">
-                  <ChevronRight className="w-4 h-4 text-stone-700" />
+                <button onClick={() => setDetailCurrentImage(prev => prev >= allImages.length - 1 ? 0 : prev + 1)} className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-all shadow-lg hover:scale-110 active:scale-95 z-10">
+                  <ChevronRight className="w-5 h-5 text-stone-700" />
                 </button>
               </>
+            )}
+            {/* Image counter dots */}
+            {allImages.length > 1 && (
+              <div className="absolute bottom-3 right-3 flex gap-1.5 pointer-events-none z-10">
+                {allImages.map((_, i) => (
+                  <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === detailCurrentImage ? 'bg-white w-4' : 'bg-white/50'}`} />
+                ))}
+              </div>
             )}
           </div>
 
           {/* Thumbnail strip + video button */}
           {(allImages.length > 1 || selectedProduct.video) && (
-            <div className="px-4 py-2 flex gap-2 overflow-x-auto bg-stone-50">
+            <div className="px-4 py-2.5 flex gap-2 overflow-x-auto bg-stone-50 scrollbar-hide">
               {allImages.map((img, i) => (
                 <button
                   key={i}
                   onClick={() => setDetailCurrentImage(i)}
-                  className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 ${detailCurrentImage === i ? 'border-orange-500' : 'border-transparent opacity-70 hover:opacity-100'} transition-all`}
+                  className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all duration-300 ${detailCurrentImage === i ? 'border-orange-500 shadow-md shadow-orange-200 scale-105' : 'border-transparent opacity-60 hover:opacity-100 hover:border-orange-200'}`}
                 >
                   <img src={img} alt="" className="w-full h-full object-cover" />
                 </button>
@@ -1333,7 +1362,7 @@ export default function Home() {
               {selectedProduct.video && (
                 <button
                   onClick={() => setDetailCurrentImage(-1)}
-                  className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 flex items-center justify-center bg-stone-200 ${detailCurrentImage === -1 ? 'border-orange-500' : 'border-transparent opacity-70 hover:opacity-100'} transition-all`}
+                  className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 flex items-center justify-center bg-stone-200 transition-all duration-300 ${detailCurrentImage === -1 ? 'border-orange-500 shadow-md shadow-orange-200 scale-105' : 'border-transparent opacity-60 hover:opacity-100 hover:border-orange-200'}`}
                 >
                   <Package className="w-5 h-5 text-stone-600" />
                 </button>
