@@ -1207,7 +1207,7 @@ export default function Home() {
 
   // ====== RENDER: FOOTER ======
   const renderFooter = () => (
-    <footer className="bg-stone-900 text-stone-300 py-12">
+    <footer id="contact" className="bg-stone-900 text-stone-300 py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           <div className="space-y-4">
@@ -1247,17 +1247,17 @@ export default function Home() {
           </div>
         </div>
         <Separator className="bg-stone-800 mb-6" />
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-stone-500">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 text-sm text-stone-500 pb-4">
           <p>© 2026 CakeCraft Bakery. All rights reserved.</p>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <p>Made with ❤️ in India</p>
-            <span className="text-stone-700">|</span>
+            <span className="text-stone-600">|</span>
             <button
               onClick={() => { setCurrentView('admin'); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-              className="text-stone-400 hover:text-orange-400 transition-colors text-xs flex items-center gap-1.5"
+              className="inline-flex items-center gap-1.5 text-stone-500 hover:text-orange-400 transition-colors text-xs px-3 py-1.5 rounded-lg hover:bg-stone-800 border border-transparent hover:border-stone-700"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-              Admin
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+              Admin Panel
             </button>
           </div>
         </div>
