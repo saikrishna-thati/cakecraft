@@ -219,6 +219,10 @@ export default function Home() {
   const [chatLoading, setChatLoading] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
+  // ---- Welcome Popup State ----
+  const [showWelcomePopup, setShowWelcomePopup] = useState(false)
+  const [welcomePopupShown, setWelcomePopupShown] = useState(false)
+
   // ---- Refs ----
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -236,6 +240,18 @@ export default function Home() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chatMessages])
+
+  useEffect(() => {
+    const shown = sessionStorage.getItem('welcomePopupShown')
+    if (!shown) {
+      const timer = setTimeout(() => {
+        setShowWelcomePopup(true)
+        setWelcomePopupShown(true)
+        sessionStorage.setItem('welcomePopupShown', 'true')
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [])
 
   // ====== PRODUCT FETCHING ======
   const fetchProducts = useCallback(async () => {
@@ -387,6 +403,17 @@ export default function Home() {
       setCurrentView('confirmation')
       window.scrollTo({ top: 0, behavior: 'smooth' })
       toast.success('Order placed successfully! 🎉')
+
+      // Open WhatsApp to send order to owner
+      try {
+        const itemLines = cart.map(item => 
+          `${item.product.name} x${item.quantity} - ₹${item.price}${item.eggless ? ' 🌱Eggless' : ''}${item.extraCream ? ' 🧁ExtraCream' : ''}${item.message ? ` "${item.message}"` : ''}`
+        ).join('%0A')
+        
+        const waMessage = `🧁 *NEW ORDER - CakeCraft*%0A━━━━━━━━━━━━━━━%0A👤 ${checkoutForm.customerName}%0A📞 ${checkoutForm.customerPhone}%0A📍 ${checkoutForm.address}, ${checkoutForm.city} - ${checkoutForm.pincode}%0A📅 ${checkoutForm.deliveryDate} at ${checkoutForm.deliveryTime}%0A💳 ${checkoutForm.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online Paid'}%0A%0A📝 *Items:*%0A${itemLines}%0A%0A💰 *Total: ₹${getCartTotal()}*%0A${checkoutForm.notes ? `%0A💬 ${checkoutForm.notes}` : ''}`
+        
+        window.open(`https://wa.me/918886633523?text=${waMessage}`, '_blank')
+      } catch { /* non-critical */ }
     } catch {
       toast.error('Failed to place order. Please try again.')
     } finally {
@@ -625,15 +652,18 @@ export default function Home() {
         </AnimatePresence>
       </motion.nav>
 
-      {/* WhatsApp floating badge */}
-      <a
-        href="https://wa.me/919876543210?text=Hi%20CakeCraft!%20I%20want%20to%20order%20a%20cake"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed top-24 right-4 z-40 w-12 h-12 bg-green-500 hover:bg-green-600 rounded-full flex items-center justify-center shadow-lg shadow-green-200 hover:scale-110 transition-all active:scale-95"
-      >
-        <MessageCircle className="w-6 h-6 text-white" />
-      </a>
+      {/* WhatsApp floating badge with pulse */}
+      <div className="fixed top-24 right-4 z-40">
+        <span className="absolute inset-0 w-12 h-12 bg-green-400 rounded-full animate-ping opacity-20" />
+        <a
+          href="https://wa.me/918886633523?text=Hi%20CakeCraft!%20I%20want%20to%20order%20a%20cake"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="relative w-12 h-12 bg-green-500 hover:bg-green-600 rounded-full flex items-center justify-center shadow-lg shadow-green-200 hover:scale-110 transition-all active:scale-95"
+        >
+          <MessageCircle className="w-6 h-6 text-white" />
+        </a>
+      </div>
     </>
   )
 
@@ -1082,8 +1112,8 @@ export default function Home() {
         </motion.div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            { icon: Phone, title: 'Call Us', info: '+91 98765 43210', sub: 'Mon-Sat, 9AM-9PM' },
-            { icon: MessageCircle, title: 'WhatsApp', info: '+91 98765 43210', sub: 'Quick replies guaranteed' },
+            { icon: Phone, title: 'Call Us', info: '+91 88866 33523', sub: 'Mon-Sat, 9AM-9PM' },
+            { icon: MessageCircle, title: 'WhatsApp', info: '+91 88866 33523', sub: 'Quick replies guaranteed' },
             { icon: MapPin, title: 'Visit Us', info: '123 Baker Street, Mumbai', sub: 'Maharashtra, India' },
             { icon: Clock, title: 'Working Hours', info: '9:00 AM - 9:00 PM', sub: 'All days of the week' },
           ].map(item => (
@@ -1150,7 +1180,7 @@ export default function Home() {
         </div>
         <Separator className="bg-stone-800 mb-6" />
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-stone-500">
-          <p>© 2025 CakeCraft Bakery. All rights reserved.</p>
+          <p>© 2026 CakeCraft Bakery. All rights reserved.</p>
           <p>Made with ❤️ in India</p>
         </div>
       </div>
@@ -1432,7 +1462,7 @@ export default function Home() {
                   <Input
                     value={checkoutForm.customerPhone}
                     onChange={e => setCheckoutForm(prev => ({ ...prev, customerPhone: e.target.value }))}
-                    placeholder="+91 98765 43210"
+                    placeholder="+91 88866 33523"
                     className="border-orange-200 rounded-xl"
                   />
                 </div>
@@ -1624,7 +1654,7 @@ export default function Home() {
           <DialogDescription>Secure payment via Razorpay</DialogDescription>
         </DialogHeader>
         <div className="py-6">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
             <CreditCard className="w-8 h-8 text-white" />
           </div>
           <p className="text-3xl font-bold text-stone-900 mb-2">{formatPrice(getCartTotal())}</p>
@@ -1637,7 +1667,7 @@ export default function Home() {
           ) : (
             <Button
               onClick={processPayment}
-              className="w-full h-12 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-semibold"
+              className="w-full h-12 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-semibold"
             >
               Pay Now
             </Button>
@@ -1649,11 +1679,11 @@ export default function Home() {
 
   // ====== RENDER: ORDER CONFIRMATION ======
   const renderConfirmation = () => (
-    <div className="pt-24 pb-16 min-h-screen bg-gradient-to-b from-orange-50/50 to-cream flex items-center justify-center">
+    <div className="pt-24 pb-16 min-h-screen bg-gradient-to-b from-orange-50/50 to-cream flex items-center justify-center relative">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-lg mx-auto px-4 sm:px-6 text-center"
+        className="max-w-lg mx-auto px-4 sm:px-6 text-center relative"
       >
         {/* Success animation */}
         <motion.div
@@ -1664,6 +1694,24 @@ export default function Home() {
         >
           <Check className="w-12 h-12 text-white" />
         </motion.div>
+
+        {/* Confetti particles */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {['red', 'orange', 'amber', 'green', 'pink'].map((color, i) => (
+            <motion.div
+              key={i}
+              initial={{ y: -20, x: 0, opacity: 0, rotate: 0 }}
+              animate={{ 
+                y: [0, 100, 200], 
+                x: [0, (i % 2 === 0 ? 30 : -30) * (i + 1), (i % 2 === 0 ? -20 : 20) * i],
+                opacity: [0, 1, 0],
+                rotate: [0, 180 * (i + 1), 360 * (i + 1)]
+              }}
+              transition={{ duration: 2, delay: 0.3 + i * 0.1, ease: 'easeOut' }}
+              className={`absolute top-4 left-1/2 w-3 h-3 rounded-sm bg-${color}-400`}
+            />
+          ))}
+        </div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -1708,7 +1756,7 @@ export default function Home() {
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a
-              href={`https://wa.me/919876543210?text=${encodeURIComponent(`Hi! I just placed an order (ID: ${confirmedOrder?.id?.slice(0, 8).toUpperCase()}). I'd like to track my order.`)}`}
+              href={`https://wa.me/918886633523?text=${encodeURIComponent(`Hi! I just placed an order (ID: ${confirmedOrder?.id?.slice(0, 8).toUpperCase()}). I'd like to track my order.`)}`}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -1979,6 +2027,81 @@ export default function Home() {
   )
 
   // ====== RENDER: AI CHATBOT ======
+  const renderWelcomePopup = () => (
+    <Dialog open={showWelcomePopup} onOpenChange={setShowWelcomePopup}>
+      <DialogContent className="max-w-md p-0 overflow-hidden border-0 shadow-2xl">
+        {/* Decorative top banner with gradient */}
+        <div className="relative bg-gradient-to-br from-orange-500 via-amber-500 to-orange-600 p-6 text-white text-center overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
+          <motion.div
+            initial={{ scale: 0, rotate: -10 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', damping: 12, stiffness: 200, delay: 0.1 }}
+            className="relative z-10"
+          >
+            <p className="text-4xl mb-2">🎂</p>
+            <h2 className="font-playfair text-2xl font-bold">Welcome to CakeCraft!</h2>
+          </motion.div>
+        </div>
+        
+        <div className="p-6 space-y-4">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-3"
+          >
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-orange-50">
+              <span className="text-xl">🎉</span>
+              <div>
+                <p className="font-semibold text-stone-800 text-sm">Flat 10% OFF on First Order!</p>
+                <p className="text-xs text-stone-500">Use code: <span className="font-bold text-orange-600">WELCOME10</span></p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-green-50">
+              <span className="text-xl">🚚</span>
+              <div>
+                <p className="font-semibold text-stone-800 text-sm">FREE Delivery Today!</p>
+                <p className="text-xs text-stone-500">On orders above ₹499</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50">
+              <span className="text-xl">⏰</span>
+              <div>
+                <p className="font-semibold text-stone-800 text-sm">Limited Time Offer</p>
+                <p className="text-xs text-stone-500">Order in next 30 min & get a free brownie!</p>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="space-y-3 pt-2"
+          >
+            <Button
+              onClick={() => { setShowWelcomePopup(false); scrollToMenu('All') }}
+              className="w-full h-12 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-semibold text-base shadow-lg shadow-orange-200"
+            >
+              Order Now & Get 10% OFF 🎁
+            </Button>
+            <Button
+              onClick={() => setShowWelcomePopup(false)}
+              variant="ghost"
+              className="w-full text-stone-400 hover:text-stone-600 text-sm"
+            >
+              I&apos;ll browse first
+            </Button>
+          </motion.div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+
   const renderChatbot = () => (
     <>
       {/* Floating chat button */}
@@ -2037,15 +2160,15 @@ export default function Home() {
                 </motion.div>
               ))}
               {chatLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-orange-50 px-4 py-3 rounded-2xl rounded-bl-md">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" />
-                      <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                      <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                    </div>
-                  </div>
-                </div>
+                <motion.div
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex gap-1 items-center p-3 max-w-[80%] bg-orange-50 rounded-2xl rounded-tl-sm"
+                >
+                  <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </motion.div>
               )}
               <div ref={chatEndRef} />
             </div>
@@ -2130,6 +2253,7 @@ export default function Home() {
       {renderProductDetailModal()}
       {renderCartDrawer()}
       {renderPaymentModal()}
+      {renderWelcomePopup()}
       {renderChatbot()}
     </main>
   )

@@ -28,7 +28,7 @@ ${order.notes ? `\n💬 *Notes:* ${order.notes}` : ''}
 📋 *Order ID:* ${order.id}`
 
     const encoded = encodeURIComponent(message)
-    const whatsappUrl = `https://wa.me/919876543210?text=${encoded}`
+    const whatsappUrl = `https://wa.me/918886633523?text=${encoded}`
 
     return NextResponse.json({ url: whatsappUrl, message })
   } catch (error) {
