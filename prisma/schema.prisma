@@ -14,7 +14,9 @@ model Product {
   description String
   price       Int      // Price in INR (paise * 100, so ₹500 = 50000)
   category    String   // Birthday, Anniversary, Custom, Brownies, Breads, Desserts, Cupcakes, Cookies
-  image       String
+  image       String   // Primary/first image
+  images      String   @default("[]") // JSON array of image URLs
+  video       String   @default("")  // Video URL (mp4)
   eggless     Boolean  @default(false)
   bestseller  Boolean  @default(false)
   weight      String   // "500g", "1kg", "2kg"

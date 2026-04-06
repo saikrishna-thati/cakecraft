@@ -17,6 +17,8 @@ export async function PUT(
         price: parseInt(body.price),
         category: body.category,
         image: body.image,
+        images: body.images !== undefined ? body.images : undefined,
+        video: body.video !== undefined ? body.video : undefined,
         eggless: body.eggless,
         bestseller: body.bestseller,
         weight: body.weight,

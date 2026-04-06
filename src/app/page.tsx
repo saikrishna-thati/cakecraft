@@ -31,6 +31,8 @@ interface Product {
   price: number
   category: string
   image: string
+  images: string
+  video: string
   eggless: boolean
   bestseller: boolean
   weight: string
@@ -207,8 +209,10 @@ export default function Home() {
   const [showAddProduct, setShowAddProduct] = useState(false)
   const [productForm, setProductForm] = useState({
     name: '', description: '', price: '', category: 'Birthday',
-    image: '', eggless: false, bestseller: false, weight: '1kg',
+    image: '', images: '[]' as string, video: '', eggless: false, bestseller: false, weight: '1kg',
   })
+  const [uploadingImages, setUploadingImages] = useState(false)
+  const [productImageList, setProductImageList] = useState<string[]>([])
 
   // ---- Chat State ----
   const [showChat, setShowChat] = useState(false)
@@ -324,6 +328,7 @@ export default function Home() {
     setDetailExtraCream(false)
     setDetailMessage('')
     setDetailQuantity(1)
+    setDetailCurrentImage(0)
   }
 
   const handleAddToCartFromDetail = () => {
@@ -514,7 +519,8 @@ export default function Home() {
   }
 
   const resetProductForm = () => {
-    setProductForm({ name: '', description: '', price: '', category: 'Birthday', image: '', eggless: false, bestseller: false, weight: '1kg' })
+    setProductForm({ name: '', description: '', price: '', category: 'Birthday', image: '', images: '[]' as string, video: '', eggless: false, bestseller: false, weight: '1kg' })
+    setProductImageList([])
   }
 
   const startEditProduct = (product: Product) => {
@@ -525,11 +531,78 @@ export default function Home() {
       price: String(product.price),
       category: product.category,
       image: product.image,
+      images: product.images || '[]',
+      video: product.video || '',
       eggless: product.eggless,
       bestseller: product.bestseller,
       weight: product.weight,
     })
+    try { setProductImageList(JSON.parse(product.images || '[]')) } catch { setProductImageList([]) }
     setShowAddProduct(true)
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    setUploadingImages(true)
+    try {
+      const formData = new FormData()
+      Array.from(files).forEach(f => formData.append('files', f))
+      const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (data.files) {
+        const newUrls = data.files.map((f: { url: string }) => f.url)
+        const updatedList = [...productImageList, ...newUrls]
+        setProductImageList(updatedList)
+        setProductForm(prev => ({ ...prev, images: JSON.stringify(updatedList) }))
+        if (!productForm.image || productForm.image === '/products/default.png') {
+          setProductForm(prev => ({ ...prev, image: updatedList[0] }))
+        }
+        toast.success(`${newUrls.length} file(s) uploaded!`)
+      }
+    } catch {
+      toast.error('Upload failed')
+    } finally {
+      setUploadingImages(false)
+      e.target.value = ''
+    }
+  }
+
+  const removeProductImage = (index: number) => {
+    const updated = productImageList.filter((_, i) => i !== index)
+    setProductImageList(updated)
+    setProductForm(prev => ({ ...prev, images: JSON.stringify(updated) }))
+    if (index === 0 && updated.length > 0) {
+      setProductForm(prev => ({ ...prev, image: updated[0] }))
+    }
+  }
+
+  const setPrimaryImage = (index: number) => {
+    if (productImageList[index]) {
+      setProductForm(prev => ({ ...prev, image: productImageList[index] }))
+      toast.success('Primary image updated')
+    }
+  }
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingImages(true)
+    try {
+      const formData = new FormData()
+      formData.append('files', file)
+      const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (data.files?.[0]) {
+        setProductForm(prev => ({ ...prev, video: data.files[0].url }))
+        toast.success('Video uploaded!')
+      }
+    } catch {
+      toast.error('Video upload failed')
+    } finally {
+      setUploadingImages(false)
+      e.target.value = ''
+    }
   }
 
   // ====== CATEGORY SCROLL ======
@@ -586,13 +659,6 @@ export default function Home() {
 
             {/* Right side */}
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => { setCurrentView('admin'); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-                className="text-xs text-stone-400 hover:text-orange-600 transition-colors hidden sm:block"
-              >
-                Admin
-              </button>
-
               {/* Cart button */}
               <button
                 onClick={() => setShowCart(true)}
@@ -631,14 +697,13 @@ export default function Home() {
               className="md:hidden bg-white/95 backdrop-blur-lg border-t border-orange-100 overflow-hidden"
             >
               <div className="px-4 py-4 space-y-1">
-                {['Home', 'Menu', 'About', 'Contact', 'Admin'].map(item => (
+                {['Home', 'Menu', 'About', 'Contact'].map(item => (
                   <button
                     key={item}
                     onClick={() => {
                       setMobileMenuOpen(false)
                       if (item === 'Home') { setCurrentView('home'); window.scrollTo({ top: 0, behavior: 'smooth' }) }
                       else if (item === 'Menu') scrollToMenu('All')
-                      else if (item === 'Admin') { setCurrentView('admin'); window.scrollTo({ top: 0, behavior: 'smooth' }) }
                       else document.getElementById(item.toLowerCase())?.scrollIntoView({ behavior: 'smooth' })
                     }}
                     className="block w-full text-left px-4 py-3 rounded-xl text-stone-600 hover:bg-orange-50 hover:text-orange-600 transition-colors font-medium"
@@ -654,14 +719,16 @@ export default function Home() {
 
       {/* WhatsApp floating badge with pulse */}
       <div className="fixed top-24 right-4 z-40">
-        <span className="absolute inset-0 w-12 h-12 bg-green-400 rounded-full animate-ping opacity-20" />
+        <span className="absolute inset-0 w-14 h-14 bg-green-400 rounded-full animate-ping opacity-20" />
         <a
           href="https://wa.me/918886633523?text=Hi%20CakeCraft!%20I%20want%20to%20order%20a%20cake"
           target="_blank"
           rel="noopener noreferrer"
-          className="relative w-12 h-12 bg-green-500 hover:bg-green-600 rounded-full flex items-center justify-center shadow-lg shadow-green-200 hover:scale-110 transition-all active:scale-95"
+          className="relative w-14 h-14 bg-[#25D366] hover:bg-[#20BD5A] rounded-full flex items-center justify-center shadow-lg shadow-green-300 hover:scale-110 transition-all active:scale-95"
         >
-          <MessageCircle className="w-6 h-6 text-white" />
+          <svg viewBox="0 0 32 32" className="w-7 h-7 fill-white">
+            <path d="M16.004 0h-.008C7.174 0 0 7.176 0 16c0 3.5 1.132 6.742 3.054 9.378L1.054 31.29l6.118-1.962A15.9 15.9 0 0016.004 32C24.826 32 32 24.822 32 16S24.826 0 16.004 0zm9.326 22.6c-.39 1.1-1.932 2.014-3.17 2.282-.848.18-1.954.324-5.68-1.22-4.77-2.472-7.844-7.336-8.084-7.66-.23-.324-1.936-2.578-1.936-4.916s1.226-3.49 1.662-3.968c.39-.432 1.032-.648 1.638-.648.198 0 .374.01.534.018.436.018.654.044.942.726.36.846 1.238 3.014 1.346 3.234.108.218.216.514.072.826-.144.314-.258.45-.478.726-.218.278-.432.49-.65.79-.204.258-.434.536-.18.988.254.448 1.13 1.864 2.426 3.022 1.666 1.484 3.07 1.944 3.518 2.15.448.204.71.172.97-.108.258-.28 1.11-1.294 1.408-1.74.296-.448.594-.372 1-.222.408.148 2.578 1.216 3.02 1.436.438.222.73.332.838.514.108.186.108 1.066-.282 2.164z"/>
+          </svg>
         </a>
       </div>
     </>
@@ -1181,35 +1248,96 @@ export default function Home() {
         <Separator className="bg-stone-800 mb-6" />
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-stone-500">
           <p>© 2026 CakeCraft Bakery. All rights reserved.</p>
-          <p>Made with ❤️ in India</p>
+          <div className="flex items-center gap-4">
+            <p>Made with ❤️ in India</p>
+            <button
+              onClick={() => { setCurrentView('admin'); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+              className="text-stone-600 hover:text-stone-400 transition-colors text-xs"
+            >
+              Admin
+            </button>
+          </div>
         </div>
       </div>
     </footer>
   )
 
   // ====== RENDER: PRODUCT DETAIL MODAL ======
-  const renderProductDetailModal = () => (
-    <Dialog open={!!selectedProduct} onOpenChange={() => setSelectedProduct(null)}>
+  const [detailCurrentImage, setDetailCurrentImage] = useState(0)
+
+  const renderProductDetailModal = () => {
+    if (!selectedProduct) return null
+    const imageList: string[] = []
+    try { 
+      const parsed = JSON.parse(selectedProduct.images || '[]')
+      if (Array.isArray(parsed)) imageList.push(...parsed)
+    } catch {}
+    // Ensure primary image is first
+    if (selectedProduct.image && !imageList.includes(selectedProduct.image)) {
+      imageList.unshift(selectedProduct.image)
+    }
+    const allImages = imageList.length > 0 ? imageList : [selectedProduct.image]
+    const currentImg = allImages[detailCurrentImage] || allImages[0]
+
+    return (
+    <Dialog open={!!selectedProduct} onOpenChange={(open) => { if (!open) { setSelectedProduct(null); setDetailCurrentImage(0) } }}>
       <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto p-0">
-        {selectedProduct && (
-          <>
-            {/* Image */}
-            <div className="relative h-64 sm:h-80 bg-orange-50">
+        <>
+          {/* Image Gallery */}
+          <div className="relative h-64 sm:h-80 bg-orange-50">
+            {selectedProduct.video && detailCurrentImage === -1 ? (
+              <video src={selectedProduct.video} controls autoPlay className="w-full h-full object-contain" />
+            ) : (
               <img
-                src={selectedProduct.image}
+                src={currentImg}
                 alt={selectedProduct.name}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-              <div className="absolute bottom-4 left-4 flex gap-2">
-                {selectedProduct.bestseller && (
-                  <Badge className="bg-amber-500 text-white"><Award className="w-3 h-3 mr-1" /> Bestseller</Badge>
-                )}
-                {selectedProduct.eggless && (
-                  <Badge className="bg-green-500 text-white"><Leaf className="w-3 h-3 mr-1" /> Eggless</Badge>
-                )}
-              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+            <div className="absolute bottom-4 left-4 flex gap-2">
+              {selectedProduct.bestseller && (
+                <Badge className="bg-amber-500 text-white"><Award className="w-3 h-3 mr-1" /> Bestseller</Badge>
+              )}
+              {selectedProduct.eggless && (
+                <Badge className="bg-green-500 text-white"><Leaf className="w-3 h-3 mr-1" /> Eggless</Badge>
+              )}
             </div>
+            {/* Image navigation arrows */}
+            {allImages.length > 1 && (
+              <>
+                <button onClick={() => setDetailCurrentImage(prev => prev <= 0 ? allImages.length - 1 : prev - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-md">
+                  <ChevronRight className="w-4 h-4 text-stone-700 rotate-180" />
+                </button>
+                <button onClick={() => setDetailCurrentImage(prev => prev >= allImages.length - 1 ? 0 : prev + 1)} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-md">
+                  <ChevronRight className="w-4 h-4 text-stone-700" />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Thumbnail strip + video button */}
+          {(allImages.length > 1 || selectedProduct.video) && (
+            <div className="px-4 py-2 flex gap-2 overflow-x-auto bg-stone-50">
+              {allImages.map((img, i) => (
+                <button
+                  key={i}
+                  onClick={() => setDetailCurrentImage(i)}
+                  className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 ${detailCurrentImage === i ? 'border-orange-500' : 'border-transparent opacity-70 hover:opacity-100'} transition-all`}
+                >
+                  <img src={img} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+              {selectedProduct.video && (
+                <button
+                  onClick={() => setDetailCurrentImage(-1)}
+                  className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 flex items-center justify-center bg-stone-200 ${detailCurrentImage === -1 ? 'border-orange-500' : 'border-transparent opacity-70 hover:opacity-100'} transition-all`}
+                >
+                  <Package className="w-5 h-5 text-stone-600" />
+                </button>
+              )}
+            </div>
+          )}
 
             <div className="p-6 space-y-6">
               <div>
@@ -1335,10 +1463,10 @@ export default function Home() {
               </div>
             </div>
           </>
-        )}
       </DialogContent>
     </Dialog>
-  )
+    )
+  }
 
   // ====== RENDER: CART DRAWER ======
   const renderCartDrawer = () => (
@@ -1760,8 +1888,9 @@ export default function Home() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Button className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white rounded-xl font-semibold h-12">
-                <MessageCircle className="w-5 h-5 mr-2" /> Track on WhatsApp
+              <Button className="w-full sm:w-auto bg-[#25D366] hover:bg-[#20BD5A] text-white rounded-xl font-semibold h-12">
+                <svg viewBox="0 0 32 32" className="w-5 h-5 fill-white mr-2 inline"><path d="M16.004 0h-.008C7.174 0 0 7.176 0 16c0 3.5 1.132 6.742 3.054 9.378L1.054 31.29l6.118-1.962A15.9 15.9 0 0016.004 32C24.826 32 32 24.822 32 16S24.826 0 16.004 0zm9.326 22.6c-.39 1.1-1.932 2.014-3.17 2.282-.848.18-1.954.324-5.68-1.22-4.77-2.472-7.844-7.336-8.084-7.66-.23-.324-1.936-2.578-1.936-4.916s1.226-3.49 1.662-3.968c.39-.432 1.032-.648 1.638-.648.198 0 .374.01.534.018.436.018.654.044.942.726.36.846 1.238 3.014 1.346 3.234.108.218.216.514.072.826-.144.314-.258.45-.478.726-.218.278-.432.49-.65.79-.204.258-.434.536-.18.988.254.448 1.13 1.864 2.426 3.022 1.666 1.484 3.07 1.944 3.518 2.15.448.204.71.172.97-.108.258-.28 1.11-1.294 1.408-1.74.296-.448.594-.372 1-.222.408.148 2.578 1.216 3.02 1.436.438.222.73.332.838.514.108.186.108 1.066-.282 2.164z"/></svg>
+                Track on WhatsApp
               </Button>
             </a>
             <Button
@@ -1868,7 +1997,9 @@ export default function Home() {
                           <tr key={product.id} className="border-t border-stone-100 hover:bg-orange-50/50">
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-3">
-                                <img src={product.image} alt={product.name} className="w-10 h-10 rounded-lg object-cover" />
+                                <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
+                                  <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                                </div>
                                 <div>
                                   <p className="font-medium text-stone-800">{product.name}</p>
                                   <p className="text-xs text-stone-400">{product.weight}</p>
@@ -1967,12 +2098,117 @@ export default function Home() {
             )}
 
             {/* Add/Edit Product Modal */}
-            <Dialog open={showAddProduct} onOpenChange={setShowAddProduct}>
-              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <Dialog open={showAddProduct} onOpenChange={(open) => { if (!open) { setShowAddProduct(false); setProductImageList([]); } }}>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>{editingProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
+                  <DialogDescription>{editingProduct ? 'Update product details and manage images' : 'Fill in product details and upload images'}</DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4">
+                <div className="space-y-5">
+                  {/* Image Gallery Manager */}
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold">Product Images</Label>
+                    <p className="text-xs text-stone-400">Upload multiple images. First image is the primary display image. Supports JPG, PNG, GIF, WebP.</p>
+                    
+                    {/* Upload area */}
+                    <div className="border-2 border-dashed border-orange-200 rounded-xl p-4 hover:border-orange-400 transition-colors bg-orange-50/50">
+                      <label className="flex flex-col items-center gap-2 cursor-pointer">
+                        <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                          {uploadingImages ? <Loader2 className="w-6 h-6 text-orange-500 animate-spin" /> : <Plus className="w-6 h-6 text-orange-500" />}
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-medium text-stone-600">{uploadingImages ? 'Uploading...' : 'Click to upload images'}</p>
+                          <p className="text-xs text-stone-400 mt-1">or drag & drop • JPG, PNG, GIF, WebP up to 10MB</p>
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/gif,image/webp"
+                          multiple
+                          onChange={handleImageUpload}
+                          disabled={uploadingImages}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+
+                    {/* Existing images grid */}
+                    {productImageList.length > 0 && (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        {productImageList.map((img, index) => (
+                          <div key={index} className={`relative group rounded-lg overflow-hidden border-2 ${img === productForm.image ? 'border-orange-500 ring-2 ring-orange-200' : 'border-stone-200'}`}>
+                            <img src={img} alt={`Product ${index + 1}`} className="w-full h-20 object-cover" />
+                            {/* Primary badge */}
+                            {img === productForm.image && (
+                              <div className="absolute top-0.5 left-0.5 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">PRIMARY</div>
+                            )}
+                            {/* Action buttons overlay */}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                              {img !== productForm.image && (
+                                <button
+                                  onClick={() => setPrimaryImage(index)}
+                                  className="p-1 bg-white rounded-md hover:bg-orange-100 transition-colors"
+                                  title="Set as primary"
+                                >
+                                  <Star className="w-3 h-3 text-orange-500" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => removeProductImage(index)}
+                                className="p-1 bg-white rounded-md hover:bg-red-100 transition-colors"
+                                title="Remove image"
+                              >
+                                <Trash2 className="w-3 h-3 text-red-500" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {productImageList.length === 0 && !editingProduct && (
+                      <p className="text-xs text-stone-400 text-center py-2">No images uploaded yet. Upload at least one image.</p>
+                    )}
+                  </div>
+
+                  {/* Video Upload */}
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold">Product Video (Optional)</Label>
+                    <p className="text-xs text-stone-400">Upload a stylish product video. Supports MP4, WebM up to 10MB.</p>
+                    
+                    {productForm.video ? (
+                      <div className="relative rounded-xl overflow-hidden border border-stone-200">
+                        <video src={productForm.video} controls className="w-full h-40 object-contain bg-stone-50" />
+                        <button
+                          onClick={() => { setProductForm(prev => ({ ...prev, video: '' })); toast.success('Video removed') }}
+                          className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-md"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="border-2 border-dashed border-stone-200 rounded-xl p-3 hover:border-orange-300 transition-colors">
+                        <label className="flex items-center justify-center gap-2 cursor-pointer">
+                          <div className="w-8 h-8 bg-stone-100 rounded-lg flex items-center justify-center">
+                            {uploadingImages ? <Loader2 className="w-4 h-4 text-stone-400 animate-spin" /> : <Package className="w-4 h-4 text-stone-400" />}
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-stone-500">{uploadingImages ? 'Uploading...' : 'Upload Video'}</p>
+                          </div>
+                          <input
+                            type="file"
+                            accept="video/mp4,video/webm,video/quicktime"
+                            onChange={handleVideoUpload}
+                            disabled={uploadingImages}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  {/* Product Details */}
                   <div className="space-y-2">
                     <Label>Product Name *</Label>
                     <Input value={productForm.name} onChange={e => setProductForm(prev => ({ ...prev, name: e.target.value }))} className="border-orange-200 rounded-xl" />
@@ -2000,10 +2236,6 @@ export default function Home() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Image URL</Label>
-                    <Input value={productForm.image} onChange={e => setProductForm(prev => ({ ...prev, image: e.target.value }))} className="border-orange-200 rounded-xl" placeholder="/products/filename.png" />
-                  </div>
                   <div className="flex gap-6">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <Checkbox checked={productForm.eggless} onCheckedChange={c => setProductForm(prev => ({ ...prev, eggless: c === true }))} />
@@ -2014,8 +2246,8 @@ export default function Home() {
                       <span className="text-sm text-stone-700">Bestseller</span>
                     </label>
                   </div>
-                  <Button onClick={handleSaveProduct} className="w-full bg-orange-500 hover:bg-orange-600 rounded-xl font-semibold">
-                    {editingProduct ? 'Update Product' : 'Create Product'}
+                  <Button onClick={handleSaveProduct} disabled={uploadingImages} className="w-full bg-orange-500 hover:bg-orange-600 rounded-xl font-semibold h-11">
+                    {uploadingImages ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading...</> : (editingProduct ? 'Update Product' : 'Create Product')}
                   </Button>
                 </div>
               </DialogContent>

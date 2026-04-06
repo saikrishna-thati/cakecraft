@@ -18,6 +18,8 @@ export async function POST(request: NextRequest) {
         price: parseInt(body.price),
         category: body.category,
         image: body.image || '/products/default.png',
+        images: body.images || '[]',
+        video: body.video || '',
         eggless: body.eggless || false,
         bestseller: body.bestseller || false,
         weight: body.weight || '1kg',
